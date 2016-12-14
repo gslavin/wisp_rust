@@ -23,7 +23,7 @@ pub fn parse(buff: &str) -> Vec<Token>{
 
     lazy_static! {
         static ref IDENT: Regex = Regex::new(r"([A-Za-z_]|[/*\+-])([0-9A-Za-z_]|[/*\+-])*").unwrap();
-        static ref NUMBER: Regex = Regex::new(r"\d+").unwrap();
+        static ref NUMBER: Regex = Regex::new(r"\d+(\.\d+)?").unwrap();
         static ref WHITESPACE: Regex = Regex::new(r"[:space:]").unwrap();
     }
     for c in buff.chars() {
@@ -60,20 +60,49 @@ pub fn parse(buff: &str) -> Vec<Token>{
 
 #[cfg(test)]
 mod test {
-    use lexer;
+    use lexer::parse;
+    use lexer::Token;
 
     #[test]
     fn simple_parse() {
-        let tokens = lexer::parse("(+ 3 4)");
-        let expected_tokens = vec![lexer::Token::OpenParen, lexer::Token::Identifier(String::from("+")),
-            lexer::Token::Number(3.0), lexer::Token::Number(4.0), lexer::Token::CloseParen];
+        let tokens = parse("(+ 3 4)");
+        let expected_tokens = vec![Token::OpenParen, Token::Identifier(String::from("+")),
+            Token::Number(3.0), Token::Number(4.0), Token::CloseParen];
         assert_eq!(tokens, expected_tokens);
     }
 
     #[test]
-    #[should_panic]
-    fn bad_parse() {
-        lexer::parse("(+ ??? 4");
-    
+    fn nested_parse() {
+        let tokens = parse("(+ (* 3 5) 4)");
+        let expected_tokens = vec![Token::OpenParen, Token::Identifier(String::from("+")),
+            Token::OpenParen, Token::Identifier(String::from("*")), Token::Number(3.0), Token::Number(5.0),
+            Token::CloseParen,  Token::Number(4.0), Token::CloseParen];
+        assert_eq!(tokens, expected_tokens);
     }
+
+    #[test]
+    fn floating_point() {
+        parse("(+ 3 4.0)");
+    }
+
+    #[test]
+    fn valid_ops() {
+        parse("(+ 3 4.0)");
+        parse("(- 3 4.0)");
+        parse("(* 3 4.0)");
+        parse("(/ 3 4.0)");
+    }
+
+    #[test]
+    #[should_panic]
+    fn invalid_identifier() {
+        parse("(+ ??? 4)");
+    }
+
+    #[test]
+    #[should_panic]
+    fn leading_digit() {
+        parse("(+ 4add 4)");
+    }
+
 }
