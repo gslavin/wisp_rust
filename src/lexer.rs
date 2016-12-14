@@ -7,15 +7,8 @@ pub enum Token {
     Number(f32),
     Identifier(String),
     CloseParen,
+	NULL,
 }
-
-/*
-impl PartialEq for Token {
-    fn eq(&self, other: &Token) -> bool {
-        match 
-    }
-}
-*/
 
 pub fn parse(buff: &str) -> Vec<Token>{
     let mut tokens = Vec::new();

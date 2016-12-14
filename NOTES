@@ -1,0 +1,2 @@
+- change lexer into and iterator
+    - can't store Chars iterator in struct
