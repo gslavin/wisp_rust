@@ -1,3 +1,8 @@
+/* lexer.rs
+ *
+ * Takes str as an input and returns a Vec of tokens.
+ * Panics if an invalid token is encountered
+ */
 use std::io::prelude::*;
 use regex::Regex;
 
@@ -7,7 +12,6 @@ pub enum Token {
     Number(f32),
     Identifier(String),
     CloseParen,
-	NULL,
 }
 
 pub fn parse(buff: &str) -> Vec<Token>{
