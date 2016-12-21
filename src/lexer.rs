@@ -10,6 +10,7 @@ use regex::Regex;
 pub enum Token {
     OpenParen,
     Number(f64),
+    String(String),
     Identifier(String),
     CloseParen,
 }
@@ -21,6 +22,7 @@ pub fn parse(buff: &str) -> Vec<Token>{
     lazy_static! {
         static ref IDENT: Regex = Regex::new(r"([A-Za-z_]|[/*\+-])([0-9A-Za-z_]|[/*\+-])*").unwrap();
         static ref NUMBER: Regex = Regex::new(r"\d+(\.\d+)?").unwrap();
+        static ref STRING: Regex = Regex::new(r#"".*""#).unwrap();
         static ref WHITESPACE: Regex = Regex::new(r"[:space:]").unwrap();
     }
     for c in buff.chars() {
@@ -29,6 +31,9 @@ pub fn parse(buff: &str) -> Vec<Token>{
             if NUMBER.is_match(token.as_str()) {
                 let num = token.parse::<f64>().expect("Invalid number!");
                 tokens.push(Token::Number(num));
+            }
+            else if STRING.is_match(token.as_str()) {
+                tokens.push(Token::String(String::from(token.trim_matches('\"'))));
             }
             else if IDENT.is_match(token.as_str()) {
                 tokens.push(Token::Identifier(token.clone()));
@@ -80,6 +85,14 @@ mod test {
     #[test]
     fn floating_point() {
         parse("(+ 3 4.0)");
+    }
+
+    #[test]
+    fn string_test() {
+        let tokens = parse("(cat \"new\" \"wow\")");
+        let expected_tokens = vec![Token::OpenParen, Token::Identifier(String::from("cat")),
+            Token::String(String::from("new")), Token::String(String::from("wow")), Token::CloseParen];
+        assert_eq!(tokens, expected_tokens);
     }
 
     #[test]

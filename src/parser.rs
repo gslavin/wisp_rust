@@ -13,6 +13,7 @@ use lexer::Token;
 pub enum AstNode {
     Expression(Vec<Box<AstNode>>),
     Number(f64),
+    String(String),
     Identifier(String),
 }
 
@@ -24,6 +25,7 @@ pub fn parse<I>(tokens: &mut I) -> AstNode
         match token {
             Token::OpenParen => expr.push(Box::new(parse(tokens))),
             Token::Number(x) => expr.push(Box::new(AstNode::Number(x))),
+            Token::String(x) => expr.push(Box::new(AstNode::String(x))),
             Token::Identifier(x) => expr.push(Box::new(AstNode::Identifier(x))),
             Token::CloseParen => break,
         }
@@ -82,5 +84,5 @@ mod test {
         let ast = parse(&mut tokens.into_iter());
         assert_eq!(ast, expected_ast);
     }
-    // TODO: Add failure cases
+    // TODO: Add failure cases and string tests
 }
