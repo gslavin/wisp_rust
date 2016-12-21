@@ -7,6 +7,7 @@ use std::io::Error;
 
 pub mod lexer;
 pub mod parser;
+pub mod eval;
 
 fn read_file(filename: &str) -> Result<String, Error> {
 	let mut f = try!(File::open(filename));

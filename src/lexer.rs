@@ -9,7 +9,7 @@ use regex::Regex;
 #[derive(Debug, PartialEq)]
 pub enum Token {
     OpenParen,
-    Number(f32),
+    Number(f64),
     Identifier(String),
     CloseParen,
 }
@@ -27,7 +27,7 @@ pub fn parse(buff: &str) -> Vec<Token>{
         // White space and parentheses trigger the completion of the previous token
         if WHITESPACE.is_match(c.to_string().as_str()) || c == '(' || c == ')' {
             if NUMBER.is_match(token.as_str()) {
-                let num = token.parse::<f32>().expect("Invalid number!");
+                let num = token.parse::<f64>().expect("Invalid number!");
                 tokens.push(Token::Number(num));
             }
             else if IDENT.is_match(token.as_str()) {
