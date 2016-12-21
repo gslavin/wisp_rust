@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::Error;
 
 pub mod lexer;
+pub mod parser;
 
 fn read_file(filename: &str) -> Result<String, Error> {
 	let mut f = try!(File::open(filename));
