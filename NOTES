@@ -1,2 +1,5 @@
 - change lexer into and iterator
     - can't store Chars iterator in struct
+        -iterator borrows from String and string must have longer lifetime
+        - Can't store String and chars iterator in same struct
+    - Try changing iterator into a BufferedStream
