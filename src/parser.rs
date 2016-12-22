@@ -9,6 +9,8 @@
  */
 use lexer::Token;
 
+
+/* TODO: Add lambdas */
 #[derive(Debug, PartialEq)]
 pub enum AstNode {
     Expression(Vec<Box<AstNode>>),
@@ -16,6 +18,7 @@ pub enum AstNode {
     String(String),
     Identifier(String),
     Define,
+    Lambda(Vec<Box<AstNode>>, Box<AstNode>), // contains (list of args, AST of function body)
 }
 
 pub fn parse<I>(tokens: &mut I) -> AstNode
