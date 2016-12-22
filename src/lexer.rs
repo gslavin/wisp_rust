@@ -15,7 +15,7 @@ pub enum Token {
     CloseParen,
 }
 
-pub fn parse(buff: &str) -> Vec<Token>{
+pub fn parse(buff: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut token = String::new();
 

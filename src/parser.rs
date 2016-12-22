@@ -15,6 +15,7 @@ pub enum AstNode {
     Number(f64),
     String(String),
     Identifier(String),
+    Define,
 }
 
 pub fn parse<I>(tokens: &mut I) -> AstNode

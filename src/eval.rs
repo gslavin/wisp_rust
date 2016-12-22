@@ -5,8 +5,7 @@
  */
 use parser::AstNode;
 
-fn add(args: &[Box<AstNode>]) -> AstNode
-{
+fn add(args: &[Box<AstNode>]) -> AstNode {
     let mut sum: f64 = 0.0;
     for arg in args.iter() {
         match **arg {
@@ -18,8 +17,7 @@ fn add(args: &[Box<AstNode>]) -> AstNode
     return AstNode::Number(sum);
 }
 
-fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode>
-{
+fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode> {
     let ret: Option<AstNode>;
 
     if let AstNode::Identifier(ref ident) = *op {
@@ -43,16 +41,34 @@ fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode>
     return ret;
 }
 
-pub fn eval(ast: &mut AstNode) -> ()
-{
+fn add_define_to_state() -> () {
+    return ();
+}
+
+pub fn eval(ast: &mut AstNode) -> () {
     let mut result: Option<AstNode> = None;
 
+    /* If expr
+     *    determine if define or application
+     */
     if let AstNode::Expression(ref mut expr) = *ast {
-        for e in expr.iter_mut() {
-            eval(&mut *e);
-        }
-        if let Some((op, args)) = (*expr).split_first() {
-            result = apply(op, args);
+        // ref to boxed op, ref to slice of boxed args
+        if let Some((op, args)) = (*expr).split_first_mut() {
+
+            if let AstNode::Define = **op {
+                // Define
+                add_define_to_state();
+            }
+            else {
+                // Application
+                eval(&mut **op);
+                for e in args.iter_mut() {
+                    eval(&mut *e);
+                }
+                result = apply(op, args);
+            }
+    
+
         }
     }
 
