@@ -5,11 +5,17 @@
  */
 use parser::AstNode;
 
-fn add(args: &[Box<AstNode>]) -> AstNode {
-    let mut sum: f64 = 0.0;
-    for arg in args.iter() {
+fn reduce<F>(args: &[Box<AstNode>], f: F) -> AstNode
+    where F: Fn(f64, f64) -> f64
+{
+    let mut sum: f64;
+    match *args[0] {
+        AstNode::Number(x) => sum = x,
+        _ => panic!("Invalid number arg: {:?}", args[0]),
+    }
+    for arg in args[1..].iter() {
         match **arg {
-            AstNode::Number(x) => sum += x,
+            AstNode::Number(x) => sum = f(x, sum),
             _ => panic!("Invalid number arg: {:?}", arg),
         }
     }
@@ -17,12 +23,17 @@ fn add(args: &[Box<AstNode>]) -> AstNode {
     return AstNode::Number(sum);
 }
 
+/* Apply the given evaluated arguments to the given operand */
 fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode> {
     let ret: Option<AstNode>;
 
     if let AstNode::Identifier(ref ident) = *op {
         match ident.as_str() {
-            "+" => ret = Some(add(args)),
+            "+" => ret = Some(reduce(args, |x, sum| sum + x)),
+            "*" => ret = Some(reduce(args, |x, prod| prod * x)),
+            // TODO: should variable arg -,/ work?
+            "-" => ret = Some(reduce(args, |x, sum| sum - x)),
+            "/" => ret = Some(reduce(args, |x, prod| prod / x)),
             _ => panic!("Invalid op: {:?}", ident),
         }
     }
@@ -41,10 +52,15 @@ fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode> {
     return ret;
 }
 
+/* Add a definition to the given state
+ * TODO: add state struct
+ */
 fn add_define_to_state() -> () {
     return ();
 }
 
+/* Evaluate the given AST in place
+ */
 pub fn eval(ast: &mut AstNode) -> () {
     let mut result: Option<AstNode> = None;
 
@@ -92,6 +108,39 @@ mod test {
                                                     Box::new(AstNode::Number(4.0))]))]);
         eval(&mut ast);
         let expected_result = AstNode::Number(7.0);
+        assert_eq!(ast, expected_result);
+    }
+
+    #[test]
+    fn simple_sub() {
+        let mut ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("-"))),
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]);
+        eval(&mut ast);
+        let expected_result = AstNode::Number(-1.0);
+        assert_eq!(ast, expected_result);
+    }
+
+    #[test]
+    fn simple_mult() {
+        let mut ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("*"))),
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]);
+        eval(&mut ast);
+        let expected_result = AstNode::Number(12.0);
+        assert_eq!(ast, expected_result);
+    }
+
+    #[test]
+    fn simple_div() {
+        let mut ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("/"))),
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]);
+        eval(&mut ast);
+        let expected_result = AstNode::Number(0.75);
         assert_eq!(ast, expected_result);
     }
 
