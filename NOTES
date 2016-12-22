@@ -3,3 +3,13 @@
         -iterator borrows from String and string must have longer lifetime
         - Can't store String and chars iterator in same struct
     - Try changing iterator into a BufferedStream
+
+
+- Add state to eval
+    - Create struct for global state
+    - Add implementation for eval of defines
+
+
+- Implement lambdas
+    lambda is
+        (variables) -> AST of function
