@@ -31,6 +31,7 @@ pub fn parse<I>(tokens: &mut I) -> AstNode
             Token::Number(x) => expr.push(Box::new(AstNode::Number(x))),
             Token::String(x) => expr.push(Box::new(AstNode::String(x))),
             Token::Identifier(x) => expr.push(Box::new(AstNode::Identifier(x))),
+            Token::Define => expr.push(Box::new(AstNode::Define)),
             Token::CloseParen => break,
         }
     }
@@ -97,6 +98,18 @@ mod test {
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
                                                  Box::new(AstNode::String(String::from("cat"))),
                                                  Box::new(AstNode::String(String::from("wow")))]))]);
+        let ast = parse(&mut tokens.into_iter());
+        assert_eq!(ast, expected_ast);
+    }
+
+    #[test]
+    fn define_parse() {
+        let tokens = vec![Token::OpenParen, Token::Define,
+                          Token::Identifier(String::from("LENGTH")), Token::Number(10.0), Token::CloseParen];
+        let expected_ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Define),
+                                                 Box::new(AstNode::Identifier(String::from("LENGTH"))),
+                                                 Box::new(AstNode::Number(10.0))]))]);
         let ast = parse(&mut tokens.into_iter());
         assert_eq!(ast, expected_ast);
     }

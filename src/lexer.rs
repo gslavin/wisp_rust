@@ -9,6 +9,7 @@ use regex::Regex;
 #[derive(Debug, PartialEq)]
 pub enum Token {
     OpenParen,
+    Define,
     Number(f64),
     String(String),
     Identifier(String),
@@ -20,6 +21,7 @@ pub fn parse(buff: &str) -> Vec<Token> {
     let mut token = String::new();
 
     lazy_static! {
+        static ref DEFINE: Regex = Regex::new(r"define").unwrap();
         static ref IDENT: Regex = Regex::new(r"([A-Za-z_]|[/*\+-])([0-9A-Za-z_]|[/*\+-])*").unwrap();
         static ref NUMBER: Regex = Regex::new(r"\d+(\.\d+)?").unwrap();
         static ref STRING: Regex = Regex::new(r#"".*""#).unwrap();
@@ -28,7 +30,10 @@ pub fn parse(buff: &str) -> Vec<Token> {
     for c in buff.chars() {
         // White space and parentheses trigger the completion of the previous token
         if WHITESPACE.is_match(c.to_string().as_str()) || c == '(' || c == ')' {
-            if NUMBER.is_match(token.as_str()) {
+            if DEFINE.is_match(token.as_str()) {
+                tokens.push(Token::Define);
+            }
+            else if NUMBER.is_match(token.as_str()) {
                 let num = token.parse::<f64>().expect("Invalid number!");
                 tokens.push(Token::Number(num));
             }
@@ -92,6 +97,13 @@ mod test {
         let tokens = parse("(cat \"new\" \"wow\")");
         let expected_tokens = vec![Token::OpenParen, Token::Identifier(String::from("cat")),
             Token::String(String::from("new")), Token::String(String::from("wow")), Token::CloseParen];
+        assert_eq!(tokens, expected_tokens);
+    }
+    #[test]
+    fn define_test() {
+        let tokens = parse("(define A 10.0)");
+        let expected_tokens = vec![Token::OpenParen, Token::Define,
+            Token::Identifier(String::from("A")), Token::Number(10.0), Token::CloseParen];
         assert_eq!(tokens, expected_tokens);
     }
 

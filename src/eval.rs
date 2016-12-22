@@ -55,8 +55,8 @@ fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode> {
 /* Add a definition to the given state
  * TODO: add state struct
  */
-fn add_define_to_state() -> () {
-    return ();
+fn add_define_to_state(name: &Box<AstNode>, value: &Box<AstNode>) -> Option<AstNode> {
+    return None;
 }
 
 /* Evaluate the given AST in place
@@ -73,7 +73,10 @@ pub fn eval(ast: &mut AstNode) -> () {
 
             if let AstNode::Define = **op {
                 // Define
-                add_define_to_state();
+                if args.len() != 2 {
+                    panic!("Can't assign multiple values to identifier {:?}", *args[0]);
+                }
+                add_define_to_state(&args[0], &args[1]);
             }
             else {
                 // Application
@@ -83,7 +86,7 @@ pub fn eval(ast: &mut AstNode) -> () {
                 }
                 result = apply(op, args);
             }
-    
+
 
         }
     }
