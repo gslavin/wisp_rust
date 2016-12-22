@@ -85,4 +85,16 @@ mod test {
         assert_eq!(ast, expected_ast);
     }
     // TODO: Add failure cases and string tests
+    #[test]
+    fn string_parse() {
+        let tokens = vec![Token::OpenParen, Token::Identifier(String::from("+")),
+                          Token::String(String::from("cat")), Token::String(String::from("wow")), Token::CloseParen];
+        let expected_ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
+                                                 Box::new(AstNode::String(String::from("cat"))),
+                                                 Box::new(AstNode::String(String::from("wow")))]))]);
+        let ast = parse(&mut tokens.into_iter());
+        assert_eq!(ast, expected_ast);
+    }
+
 }
