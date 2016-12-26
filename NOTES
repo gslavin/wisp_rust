@@ -1,6 +1,5 @@
-- Why the F64Key type?
-    - b/c floats are not totally ordered (Rust is too strict for its own good...)
-
+- finish overhaul of defines
+    - Need to redo AstNode definitions
 
 - change lexer into and iterator
     - can't store Chars iterator in struct
@@ -8,11 +7,9 @@
         - Can't store String and chars iterator in same struct
     - Try changing iterator into a BufferedStream
 
-
 - Add state to eval
     - Create struct for global state
     - Add implementation for eval of defines
-
 
 - Implement lambdas
     lambda is
