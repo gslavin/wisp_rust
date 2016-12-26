@@ -8,31 +8,12 @@
 /* exp := ( (exp|IDENT) (exp|Number|Identifier)*
  */
 use lexer::Token;
-use std;
-
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Hash, Ord)]
-pub struct F64Key(u64);
-
-impl F64Key {
-    pub fn new(mut val: f64) -> F64Key {
-        if val.is_nan() { val = std::f64::NAN } // make all NaNs have the same representation
-        unsafe { F64Key(std::mem::transmute(val)) }
-    }
-    pub fn get(self) -> f64 {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn set(&mut self, mut val : f64) {
-        if val.is_nan() { val = std::f64::NAN } // make all NaNs have the same representation
-        unsafe { *self = std::mem::transmute(val) }
-    }
-}
 
 /* TODO: Add lambdas */
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum AstNode {
     Expression(Vec<Box<AstNode>>),
-    Number(F64Key),
+    Number(f64),
     String(String),
     Identifier(String),
     Define,
@@ -51,7 +32,7 @@ pub fn parse<I>(tokens: &mut I) -> AstNode
     while let Some(token) = (*tokens).next() {
         match token {
             Token::OpenParen => expr.push(Box::new(parse(tokens))),
-            Token::Number(x) => expr.push(Box::new(AstNode::Number(F64Key::new(x)))),
+            Token::Number(x) => expr.push(Box::new(AstNode::Number((x)))),
             Token::String(x) => expr.push(Box::new(AstNode::String(x))),
             Token::Identifier(x) => expr.push(Box::new(AstNode::Identifier(x))),
             Token::Define => expr.push(Box::new(AstNode::Define)),
@@ -66,7 +47,6 @@ pub fn parse<I>(tokens: &mut I) -> AstNode
 mod test {
     use parser::parse;
     use parser::AstNode;
-    use parser::F64Key;
     use lexer::Token;
 
     #[test]
@@ -75,8 +55,8 @@ mod test {
                           Token::Number(3.0), Token::Number(4.0), Token::CloseParen];
         let expected_ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
-                                                 Box::new(AstNode::Number(F64Key::new(3.0))),
-                                                 Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
+                                                 Box::new(AstNode::Number(3.0)),
+                                                 Box::new(AstNode::Number(4.0))]))]);
         let ast = parse(&mut tokens.into_iter());
         assert_eq!(ast, expected_ast);
     }
@@ -88,11 +68,11 @@ mod test {
                           Token::Number(3.0), Token::Number(4.0), Token::CloseParen, Token::CloseParen];
         let expected_ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
-                                                 Box::new(AstNode::Number(F64Key::new(3.0))),
+                                                 Box::new(AstNode::Number(3.0)),
                                                  Box::new(AstNode::Expression(vec![
                                                     Box::new(AstNode::Identifier(String::from("*"))),
-                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]))]);
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]))]);
         let ast = parse(&mut tokens.into_iter());
         assert_eq!(ast, expected_ast);
     }
@@ -107,9 +87,9 @@ mod test {
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
                                                  Box::new(AstNode::Expression(vec![
                                                     Box::new(AstNode::Identifier(String::from("*"))),
-                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Box::new(AstNode::Number(F64Key::new(4.0)))])),
-                                                    Box::new(AstNode::Number(F64Key::new(3.0)))]))]);
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))])),
+                                                    Box::new(AstNode::Number(3.0))]))]);
         let ast = parse(&mut tokens.into_iter());
         assert_eq!(ast, expected_ast);
     }
@@ -133,7 +113,7 @@ mod test {
         let expected_ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Define),
                                                  Box::new(AstNode::Identifier(String::from("LENGTH"))),
-                                                 Box::new(AstNode::Number(F64Key::new(10.0)))]))]);
+                                                 Box::new(AstNode::Number(10.0))]))]);
         let ast = parse(&mut tokens.into_iter());
         assert_eq!(ast, expected_ast);
     }

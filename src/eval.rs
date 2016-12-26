@@ -4,12 +4,11 @@
  *
  */
 use parser::AstNode;
-use parser::F64Key;
 use std::collections::BTreeMap;
 
 
 pub struct Context {
-    defines: BTreeMap<Box<AstNode>, Box<AstNode>>,
+    defines: BTreeMap<String, Box<AstNode>>,
 }
 
 impl Context {
@@ -20,8 +19,8 @@ impl Context {
     }
     pub fn add_define(&mut self, name: Box<AstNode>, value: Box<AstNode>) -> () {
 
-        if let AstNode::Identifier(_) = *name {
-            (*self).defines.insert((name), value);
+        if let AstNode::Identifier(ref identifier) = *name {
+            (*self).defines.insert((identifier.clone()), value);
         }
         else {
             panic!("The following must be an identifier {:?}", *name);
@@ -31,8 +30,8 @@ impl Context {
     }
     fn get_define(&mut self, name: &Box<AstNode>) -> Option<&Box<AstNode>> {
 
-        if let AstNode::Identifier(_) = **name {
-            return (*self).defines.get(name);
+        if let AstNode::Identifier(ref identifier) = **name {
+            return (*self).defines.get(identifier);
         }
         else {
             panic!("The following must be an identifier {:?}", *name);
@@ -45,17 +44,17 @@ fn reduce<F>(args: &[Box<AstNode>], f: F) -> AstNode
 {
     let mut sum: f64;
     match *args[0] {
-        AstNode::Number(x) => sum = x.get(),
+        AstNode::Number(x) => sum = x,
         _ => panic!("Invalid number arg: {:?}", args[0]),
     }
     for arg in args[1..].iter() {
         match **arg {
-            AstNode::Number(x) => sum = f(x.get(), sum),
+            AstNode::Number(x) => sum = f(x, sum),
             _ => panic!("Invalid number arg: {:?}", arg),
         }
     }
 
-    return AstNode::Number(F64Key::new(sum));
+    return AstNode::Number((sum));
 }
 
 /* TODO: add lookup and evaluation of defines */
@@ -135,7 +134,6 @@ pub fn eval(ast: &mut AstNode, context: &mut Context) -> () {
 #[cfg(test)]
 mod test {
     use parser::AstNode;
-	use parser::F64Key;
     use eval::eval;
     use eval::Context;
 
@@ -144,7 +142,7 @@ mod test {
         let mut c = Context::new();
         let name = Box::new(AstNode::Identifier(String::from("A")));
         let same_name = Box::new(AstNode::Identifier(String::from("A")));
-        let value = Box::new(AstNode::Number(F64Key::new(10.0)));
+        let value = Box::new(AstNode::Number(10.0));
         c.add_define(name.clone(), value.clone());
         assert_eq!(value, *c.get_define(&same_name).unwrap());
     }
@@ -154,7 +152,7 @@ mod test {
         let mut c = Context::new();
         let name = Box::new(AstNode::Identifier(String::from("A")));
         let undefined = Box::new(AstNode::Identifier(String::from("BLAH")));
-        let value = Box::new(AstNode::Number(F64Key::new(10.0)));
+        let value = Box::new(AstNode::Number(10.0));
         c.add_define(name.clone(), value.clone());
         assert_eq!(None, c.get_define(&undefined));
     }
@@ -164,10 +162,10 @@ mod test {
         let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
-                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]);
         eval(&mut ast, &mut c);
-        let expected_result = AstNode::Number(F64Key::new(7.0));
+        let expected_result = AstNode::Number(7.0);
         assert_eq!(ast, expected_result);
     }
 
@@ -176,10 +174,10 @@ mod test {
         let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("-"))),
-                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]);
         eval(&mut ast, &mut c);
-        let expected_result = AstNode::Number(F64Key::new(-1.0));
+        let expected_result = AstNode::Number((-1.0));
         assert_eq!(ast, expected_result);
     }
 
@@ -188,10 +186,10 @@ mod test {
         let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("*"))),
-                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]);
         eval(&mut ast, &mut c);
-        let expected_result = AstNode::Number(F64Key::new(12.0));
+        let expected_result = AstNode::Number(12.0);
         assert_eq!(ast, expected_result);
     }
 
@@ -200,10 +198,10 @@ mod test {
         let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("/"))),
-                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]);
         eval(&mut ast, &mut c);
-        let expected_result = AstNode::Number(F64Key::new(0.75));
+        let expected_result = AstNode::Number((0.75));
         assert_eq!(ast, expected_result);
     }
 
@@ -212,13 +210,13 @@ mod test {
         let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
-                                                 Box::new(AstNode::Number(F64Key::new(3.0))),
+                                                 Box::new(AstNode::Number(3.0)),
                                                  Box::new(AstNode::Expression(vec![
                                                     Box::new(AstNode::Identifier(String::from("+"))),
-                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]))]);
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]))]))]);
         eval(&mut ast, &mut c);
-        let expected_result = AstNode::Number(F64Key::new(10.0));
+        let expected_result = AstNode::Number(10.0);
         assert_eq!(ast, expected_result);
     }
 
