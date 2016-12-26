@@ -146,9 +146,20 @@ mod test {
     fn simple_context() {
         let mut c = Context::new();
         let name = Box::new(AstNode::Identifier(String::from("A")));
+        let same_name = Box::new(AstNode::Identifier(String::from("A")));
         let value = Box::new(AstNode::Number(F64Key::new(10.0)));
         c.add_define(name.clone(), value.clone());
-        assert_eq!(value, *c.get_define(&name).unwrap());
+        assert_eq!(value, *c.get_define(&same_name).unwrap());
+    }
+
+    #[test]
+    fn context_get_non_existent_define() {
+        let mut c = Context::new();
+        let name = Box::new(AstNode::Identifier(String::from("A")));
+        let undefined = Box::new(AstNode::Identifier(String::from("BLAH")));
+        let value = Box::new(AstNode::Number(F64Key::new(10.0)));
+        c.add_define(name.clone(), value.clone());
+        assert_eq!(None, c.get_define(&undefined));
     }
 
     #[test]
