@@ -103,6 +103,7 @@ pub fn eval(ast: &mut AstNode, context: &mut Context) -> () {
              *   other identifier: evaluate the expr in the current context
              */
             match **p_op {
+                /* TODO: delete after define work is done
                 AstNode::Define => {
                     // Define
                     if args.len() != 2 {
@@ -110,6 +111,7 @@ pub fn eval(ast: &mut AstNode, context: &mut Context) -> () {
                     }
                     context.add_define(args[0].clone(), args[1].clone());
                 }
+                */
                 _ => {
                     // Application
                     eval(&mut **p_op, context);

@@ -23,7 +23,7 @@ fn main() {
 	let s = result.expect("Unable to read file");
 	println!("{}", s);
 	let tokens = lexer::parse(s.as_str());
-    let mut ast = parser::parse(&mut tokens.into_iter());
+    let mut ast = parser::parse(&mut tokens.into_iter().peekable());
     let mut c = eval::Context::new();
     eval::eval(&mut ast, &mut c);
     println!("{:?}", ast);
