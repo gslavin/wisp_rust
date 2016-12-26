@@ -8,6 +8,38 @@ use parser::F64Key;
 use std::collections::BTreeMap;
 
 
+pub struct Context {
+    defines: BTreeMap<Box<AstNode>, Box<AstNode>>,
+}
+
+impl Context {
+    /* Add a definition to the given state
+    */
+    pub fn new() -> Context {
+        return Context{defines: BTreeMap::new()};
+    }
+    pub fn add_define(&mut self, name: Box<AstNode>, value: Box<AstNode>) -> () {
+
+        if let AstNode::Identifier(_) = *name {
+            (*self).defines.insert((name), value);
+        }
+        else {
+            panic!("The following must be an identifier {:?}", *name);
+        }
+
+        return ();
+    }
+    fn get_define(&mut self, name: &Box<AstNode>) -> Option<&Box<AstNode>> {
+
+        if let AstNode::Identifier(_) = **name {
+            return (*self).defines.get(name);
+        }
+        else {
+            panic!("The following must be an identifier {:?}", *name);
+        }
+    }
+}
+
 fn reduce<F>(args: &[Box<AstNode>], f: F) -> AstNode
     where F: Fn(f64, f64) -> f64
 {
@@ -52,20 +84,6 @@ fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode> {
     }
 
     return ret;
-}
-
-/* Add a definition to the given state
- */
-fn add_define_to_context(context: &mut BTreeMap<Box<AstNode>, Box<AstNode>>, name: &Box<AstNode>, value: &Box<AstNode>) -> () {
-
-    if let AstNode::Identifier(_) = **name {
-        context.insert((*name).clone(), (*value).clone());
-    }
-    else {
-        panic!("The following must be an identifier {:?}", *name);
-    }
-
-    return ();
 }
 
 /* TODO: add lookup and tests */
@@ -121,6 +139,17 @@ mod test {
     use parser::AstNode;
 	use parser::F64Key;
     use eval::eval;
+    use eval::Context;
+
+
+    #[test]
+    fn simple_context() {
+        let mut c = Context::new();
+        let name = Box::new(AstNode::Identifier(String::from("A")));
+        let value = Box::new(AstNode::Number(F64Key::new(10.0)));
+        c.add_define(name.clone(), value.clone());
+        assert_eq!(value, *c.get_define(&name).unwrap());
+    }
 
     #[test]
     fn simple_eval() {
