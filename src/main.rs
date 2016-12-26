@@ -24,6 +24,7 @@ fn main() {
 	println!("{}", s);
 	let tokens = lexer::parse(s.as_str());
     let mut ast = parser::parse(&mut tokens.into_iter());
-    eval::eval(&mut ast);
+    let mut c = eval::Context::new();
+    eval::eval(&mut ast, &mut c);
     println!("{:?}", ast);
 }

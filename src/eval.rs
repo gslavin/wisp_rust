@@ -58,6 +58,7 @@ fn reduce<F>(args: &[Box<AstNode>], f: F) -> AstNode
     return AstNode::Number(F64Key::new(sum));
 }
 
+/* TODO: add lookup and evaluation of defines */
 /* Apply the given evaluated arguments to the given operand */
 fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode> {
     let ret: Option<AstNode>;
@@ -86,12 +87,10 @@ fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode> {
     return ret;
 }
 
-/* TODO: add lookup and tests */
-
 
 /* Evaluate the given AST in place
  */
-pub fn eval(ast: &mut AstNode) -> () {
+pub fn eval(ast: &mut AstNode, context: &mut Context) -> () {
     let mut result: Option<AstNode> = None;
 
     /* If expr
@@ -110,14 +109,13 @@ pub fn eval(ast: &mut AstNode) -> () {
                     if args.len() != 2 {
                         panic!("Can't assign multiple values to identifier {:?}", *args[0]);
                     }
-					/* TODO: add in contexts*/
-                    //add_define_to_context(context, &args[0], &args[1]);
+                    context.add_define(args[0].clone(), args[1].clone());
                 }
                 _ => {
                     // Application
-                    eval(&mut **p_op);
+                    eval(&mut **p_op, context);
                     for e in args.iter_mut() {
-                        eval(e);
+                        eval(e, context);
                     }
                     result = apply(p_op, args);
                 }
@@ -141,7 +139,6 @@ mod test {
     use eval::eval;
     use eval::Context;
 
-
     #[test]
     fn simple_context() {
         let mut c = Context::new();
@@ -164,50 +161,55 @@ mod test {
 
     #[test]
     fn simple_eval() {
+        let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
                                                     Box::new(AstNode::Number(F64Key::new(3.0))),
                                                     Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
-        eval(&mut ast);
+        eval(&mut ast, &mut c);
         let expected_result = AstNode::Number(F64Key::new(7.0));
         assert_eq!(ast, expected_result);
     }
 
     #[test]
     fn simple_sub() {
+        let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("-"))),
                                                     Box::new(AstNode::Number(F64Key::new(3.0))),
                                                     Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
-        eval(&mut ast);
+        eval(&mut ast, &mut c);
         let expected_result = AstNode::Number(F64Key::new(-1.0));
         assert_eq!(ast, expected_result);
     }
 
     #[test]
     fn simple_mult() {
+        let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("*"))),
                                                     Box::new(AstNode::Number(F64Key::new(3.0))),
                                                     Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
-        eval(&mut ast);
+        eval(&mut ast, &mut c);
         let expected_result = AstNode::Number(F64Key::new(12.0));
         assert_eq!(ast, expected_result);
     }
 
     #[test]
     fn simple_div() {
+        let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("/"))),
                                                     Box::new(AstNode::Number(F64Key::new(3.0))),
                                                     Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
-        eval(&mut ast);
+        eval(&mut ast, &mut c);
         let expected_result = AstNode::Number(F64Key::new(0.75));
         assert_eq!(ast, expected_result);
     }
 
     #[test]
     fn nested_eval() {
+        let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(
                            AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
                                                  Box::new(AstNode::Number(F64Key::new(3.0))),
@@ -215,7 +217,7 @@ mod test {
                                                     Box::new(AstNode::Identifier(String::from("+"))),
                                                     Box::new(AstNode::Number(F64Key::new(3.0))),
                                                     Box::new(AstNode::Number(F64Key::new(4.0)))]))]))]);
-        eval(&mut ast);
+        eval(&mut ast, &mut c);
         let expected_result = AstNode::Number(F64Key::new(10.0));
         assert_eq!(ast, expected_result);
     }
