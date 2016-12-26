@@ -6,10 +6,9 @@
 use parser::AstNode;
 use parser::F64Key;
 use std::collections::BTreeMap;
-use std::rc::Rc;
 
 
-fn reduce<F>(args: &[Rc<AstNode>], f: F) -> AstNode
+fn reduce<F>(args: &[Box<AstNode>], f: F) -> AstNode
     where F: Fn(f64, f64) -> f64
 {
     let mut sum: f64;
@@ -28,7 +27,7 @@ fn reduce<F>(args: &[Rc<AstNode>], f: F) -> AstNode
 }
 
 /* Apply the given evaluated arguments to the given operand */
-fn apply(op: &AstNode, args: &[Rc<AstNode>]) -> Option<AstNode> {
+fn apply(op: &AstNode, args: &[Box<AstNode>]) -> Option<AstNode> {
     let ret: Option<AstNode>;
 
     if let AstNode::Identifier(ref ident) = *op {
@@ -57,7 +56,7 @@ fn apply(op: &AstNode, args: &[Rc<AstNode>]) -> Option<AstNode> {
 
 /* Add a definition to the given state
  */
-fn add_define_to_context(context: &mut BTreeMap<Rc<AstNode>, Rc<AstNode>>, name: &Rc<AstNode>, value: &Rc<AstNode>) -> () {
+fn add_define_to_context(context: &mut BTreeMap<Box<AstNode>, Box<AstNode>>, name: &Box<AstNode>, value: &Box<AstNode>) -> () {
 
     if let AstNode::Identifier(_) = **name {
         context.insert((*name).clone(), (*value).clone());
@@ -98,9 +97,9 @@ pub fn eval(ast: &mut AstNode) -> () {
                 }
                 _ => {
                     // Application
-                    eval(&mut *Rc::get_mut(p_op).unwrap());
+                    eval(&mut **p_op);
                     for e in args.iter_mut() {
-                        eval(Rc::get_mut(e).unwrap());
+                        eval(e);
                     }
                     result = apply(p_op, args);
                 }
@@ -122,14 +121,13 @@ mod test {
     use parser::AstNode;
 	use parser::F64Key;
     use eval::eval;
-	use std::rc::Rc;
 
     #[test]
     fn simple_eval() {
-        let mut ast = AstNode::Expression(vec![Rc::new(
-                           AstNode::Expression(vec![Rc::new(AstNode::Identifier(String::from("+"))),
-                                                    Rc::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Rc::new(AstNode::Number(F64Key::new(4.0)))]))]);
+        let mut ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
+                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
+                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
         eval(&mut ast);
         let expected_result = AstNode::Number(F64Key::new(7.0));
         assert_eq!(ast, expected_result);
@@ -137,10 +135,10 @@ mod test {
 
     #[test]
     fn simple_sub() {
-        let mut ast = AstNode::Expression(vec![Rc::new(
-                           AstNode::Expression(vec![Rc::new(AstNode::Identifier(String::from("-"))),
-                                                    Rc::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Rc::new(AstNode::Number(F64Key::new(4.0)))]))]);
+        let mut ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("-"))),
+                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
+                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
         eval(&mut ast);
         let expected_result = AstNode::Number(F64Key::new(-1.0));
         assert_eq!(ast, expected_result);
@@ -148,10 +146,10 @@ mod test {
 
     #[test]
     fn simple_mult() {
-        let mut ast = AstNode::Expression(vec![Rc::new(
-                           AstNode::Expression(vec![Rc::new(AstNode::Identifier(String::from("*"))),
-                                                    Rc::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Rc::new(AstNode::Number(F64Key::new(4.0)))]))]);
+        let mut ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("*"))),
+                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
+                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
         eval(&mut ast);
         let expected_result = AstNode::Number(F64Key::new(12.0));
         assert_eq!(ast, expected_result);
@@ -159,10 +157,10 @@ mod test {
 
     #[test]
     fn simple_div() {
-        let mut ast = AstNode::Expression(vec![Rc::new(
-                           AstNode::Expression(vec![Rc::new(AstNode::Identifier(String::from("/"))),
-                                                    Rc::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Rc::new(AstNode::Number(F64Key::new(4.0)))]))]);
+        let mut ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("/"))),
+                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
+                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]);
         eval(&mut ast);
         let expected_result = AstNode::Number(F64Key::new(0.75));
         assert_eq!(ast, expected_result);
@@ -170,13 +168,13 @@ mod test {
 
     #[test]
     fn nested_eval() {
-        let mut ast = AstNode::Expression(vec![Rc::new(
-                           AstNode::Expression(vec![Rc::new(AstNode::Identifier(String::from("+"))),
-                                                 Rc::new(AstNode::Number(F64Key::new(3.0))),
-                                                 Rc::new(AstNode::Expression(vec![
-                                                    Rc::new(AstNode::Identifier(String::from("+"))),
-                                                    Rc::new(AstNode::Number(F64Key::new(3.0))),
-                                                    Rc::new(AstNode::Number(F64Key::new(4.0)))]))]))]);
+        let mut ast = AstNode::Expression(vec![Box::new(
+                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
+                                                 Box::new(AstNode::Number(F64Key::new(3.0))),
+                                                 Box::new(AstNode::Expression(vec![
+                                                    Box::new(AstNode::Identifier(String::from("+"))),
+                                                    Box::new(AstNode::Number(F64Key::new(3.0))),
+                                                    Box::new(AstNode::Number(F64Key::new(4.0)))]))]))]);
         eval(&mut ast);
         let expected_result = AstNode::Number(F64Key::new(10.0));
         assert_eq!(ast, expected_result);
