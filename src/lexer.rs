@@ -3,7 +3,6 @@
  * Takes str as an input and returns a Vec of tokens.
  * Panics if an invalid token is encountered
  */
-use std::io::prelude::*;
 use regex::Regex;
 
 #[derive(Debug, PartialEq)]
