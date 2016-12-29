@@ -159,6 +159,22 @@ mod test {
     }
 
     #[test]
+    fn eval_operator_define() {
+        let mut c = Context::new();
+        let name = String::from("ADD");
+        let value = Box::new(AstNode::Identifier(String::from("+")));
+        c.add_define(name.clone(), value.clone());
+        assert_eq!(value, *c.get_define(&name).unwrap());
+
+        let mut ast = AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("ADD"))),
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0))]);
+        eval(&mut ast, &mut c);
+        let expected_result = AstNode::Number(7.0);
+        assert_eq!(ast, expected_result);
+    }
+
+    #[test]
     fn simple_eval() {
         let mut c = Context::new();
         let mut ast = AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
