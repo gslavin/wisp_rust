@@ -1,3 +1,7 @@
+- Add support for multiple statements in a program
+    - Currently only 1 expression will be parsed
+
+
 - finish overhaul of defines
     - Need to redo AstNode definitions
 
