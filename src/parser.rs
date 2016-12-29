@@ -154,9 +154,17 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn mismatched_paren() {
+    fn mismatched_paren_beginning() {
         let tokens = vec![Token::CloseParen, Token::Define,
                           Token::Identifier(String::from("LENGTH")), Token::Number(10.0), Token::CloseParen];
+        parse(&mut tokens.into_iter().peekable());
+    }
+
+    #[test]
+    #[should_panic]
+    fn mismatched_paren_end() {
+        let tokens = vec![Token::Define,
+                          Token::Identifier(String::from("LENGTH")), Token::Number(10.0), Token::CloseParen, Token::CloseParen];
         parse(&mut tokens.into_iter().peekable());
     }
 
