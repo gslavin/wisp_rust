@@ -38,48 +38,49 @@ pub fn parse_define<I>(tokens: &mut Peekable<I>) -> AstNode
     else {
         panic!("Unexpected end of token stream");
     }
-    if let Some(token) = (*tokens).next() {
-        match token {
-            Token::OpenParen => match *((*tokens).peek().unwrap()) {
-                Token::Define => panic!("Nested defines are not allowed"),
-                _ => value = Box::new(parse(tokens))
-            },
-            Token::Number(x) => value = Box::new(AstNode::Number((x))),
-            Token::String(x) => value = Box::new(AstNode::String(x)),
-            Token::Identifier(x) => value = Box::new(AstNode::Identifier(x)),
-            Token::Define => panic!("Nested defines are not allowed"),
-            Token::CloseParen => panic!("Unexpected close paren")
-        }
-    }
-    else {
-        panic!("Unexpected end of token stream");
-    }
+    value = Box::new(parse(tokens));
 
     return AstNode::Define(identifier, value);
+}
+
+pub fn parse_exp<I>(tokens: &mut Peekable<I>) -> AstNode
+    where I: Iterator<Item=Token>
+{
+    let mut expr: Vec<Box<AstNode>> = Vec::new();
+    loop {
+        if let Some(&Token::CloseParen) = (*tokens).peek() {
+            break;
+        }
+        expr.push(Box::new(parse(tokens)));
+    }
+    // Consume CloseParen
+    (*tokens).next();
+
+    return AstNode::Expression(expr);
 }
 
 pub fn parse<I>(tokens: &mut Peekable<I>) -> AstNode
     where I: Iterator<Item=Token>
 {
-    let mut expr: Vec<Box<AstNode>> = Vec::new();
-    while let Some(token) = (*tokens).next() {
+    if let Some(token) = (*tokens).next() {
         match token {
             Token::OpenParen => match *((*tokens).peek().unwrap()) {
                 Token::Define => {
                     (*tokens).next();
-                    expr.push(Box::new(parse_define(tokens)));
+                    return parse_define(tokens);
                 },
-                _ => expr.push(Box::new(parse(tokens)))
+                _ => parse_exp(tokens)
             },
-            Token::Number(x) => expr.push(Box::new(AstNode::Number((x)))),
-            Token::String(x) => expr.push(Box::new(AstNode::String(x))),
-            Token::Identifier(x) => expr.push(Box::new(AstNode::Identifier(x))),
+            Token::Number(x) => AstNode::Number(x),
+            Token::String(x) => AstNode::String(x),
+            Token::Identifier(x) => AstNode::Identifier(x),
             Token::Define => panic!("Unexpected define!"),
-            Token::CloseParen => break,
+            Token::CloseParen => panic!("Unexpected )!"),
         }
     }
-
-    return AstNode::Expression(expr);
+    else {
+        panic!("Unexpected end of token stream");
+    }
 }
 
 #[cfg(test)]
@@ -92,10 +93,9 @@ mod test {
     fn simple_parse() {
         let tokens = vec![Token::OpenParen, Token::Identifier(String::from("+")),
                           Token::Number(3.0), Token::Number(4.0), Token::CloseParen];
-        let expected_ast = AstNode::Expression(vec![Box::new(
-                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
+        let expected_ast = AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
                                                  Box::new(AstNode::Number(3.0)),
-                                                 Box::new(AstNode::Number(4.0))]))]);
+                                                 Box::new(AstNode::Number(4.0))]);
         let ast = parse(&mut tokens.into_iter().peekable());
         assert_eq!(ast, expected_ast);
     }
@@ -105,13 +105,12 @@ mod test {
         let tokens = vec![Token::OpenParen, Token::Identifier(String::from("+")),
                           Token::Number(3.0), Token::OpenParen, Token::Identifier(String::from("*")),
                           Token::Number(3.0), Token::Number(4.0), Token::CloseParen, Token::CloseParen];
-        let expected_ast = AstNode::Expression(vec![Box::new(
-                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
+        let expected_ast = AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
                                                  Box::new(AstNode::Number(3.0)),
                                                  Box::new(AstNode::Expression(vec![
                                                     Box::new(AstNode::Identifier(String::from("*"))),
                                                     Box::new(AstNode::Number(3.0)),
-                                                    Box::new(AstNode::Number(4.0))]))]))]);
+                                                    Box::new(AstNode::Number(4.0))]))]);
         let ast = parse(&mut tokens.into_iter().peekable());
         assert_eq!(ast, expected_ast);
     }
@@ -121,14 +120,13 @@ mod test {
         let tokens = vec![Token::OpenParen, Token::Identifier(String::from("+")),
                           Token::OpenParen, Token::Identifier(String::from("*")),
                           Token::Number(3.0), Token::Number(4.0), Token::CloseParen,
-                          Token::Number(3.0), Token::CloseParen];
-        let expected_ast = AstNode::Expression(vec![Box::new(
-                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
+                          Token::Number(6.0), Token::CloseParen];
+        let expected_ast = AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
                                                  Box::new(AstNode::Expression(vec![
                                                     Box::new(AstNode::Identifier(String::from("*"))),
                                                     Box::new(AstNode::Number(3.0)),
                                                     Box::new(AstNode::Number(4.0))])),
-                                                    Box::new(AstNode::Number(3.0))]))]);
+                                                    Box::new(AstNode::Number(6.0))]);
         let ast = parse(&mut tokens.into_iter().peekable());
         assert_eq!(ast, expected_ast);
     }
@@ -137,10 +135,9 @@ mod test {
     fn string_parse() {
         let tokens = vec![Token::OpenParen, Token::Identifier(String::from("+")),
                           Token::String(String::from("cat")), Token::String(String::from("wow")), Token::CloseParen];
-        let expected_ast = AstNode::Expression(vec![Box::new(
-                           AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
+        let expected_ast = AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("+"))),
                                                  Box::new(AstNode::String(String::from("cat"))),
-                                                 Box::new(AstNode::String(String::from("wow")))]))]);
+                                                 Box::new(AstNode::String(String::from("wow")))]);
         let ast = parse(&mut tokens.into_iter().peekable());
         assert_eq!(ast, expected_ast);
     }
@@ -149,11 +146,18 @@ mod test {
     fn define_parse() {
         let tokens = vec![Token::OpenParen, Token::Define,
                           Token::Identifier(String::from("LENGTH")), Token::Number(10.0), Token::CloseParen];
-        let expected_ast = AstNode::Expression(vec![Box::new(
-                           AstNode::Define(String::from("LENGTH"),
-                                                 Box::new(AstNode::Number(10.0))))]);
+        let expected_ast = AstNode::Define(String::from("LENGTH"),
+                                                 Box::new(AstNode::Number(10.0)));
         let ast = parse(&mut tokens.into_iter().peekable());
         assert_eq!(ast, expected_ast);
+    }
+
+    #[test]
+    #[should_panic]
+    fn mismatched_paren() {
+        let tokens = vec![Token::CloseParen, Token::Define,
+                          Token::Identifier(String::from("LENGTH")), Token::Number(10.0), Token::CloseParen];
+        parse(&mut tokens.into_iter().peekable());
     }
 
 }
