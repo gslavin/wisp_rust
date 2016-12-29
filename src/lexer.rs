@@ -9,6 +9,7 @@ use regex::Regex;
 pub enum Token {
     OpenParen,
     Define,
+    Lambda,
     Number(f64),
     String(String),
     Identifier(String),
@@ -20,6 +21,7 @@ pub fn parse(buff: &str) -> Vec<Token> {
     let mut token = String::new();
 
     lazy_static! {
+        static ref LAMBDA: Regex = Regex::new(r"lambda").unwrap();
         static ref DEFINE: Regex = Regex::new(r"define").unwrap();
         static ref IDENT: Regex = Regex::new(r"([A-Za-z_]|[/*\+-])([0-9A-Za-z_]|[/*\+-])*").unwrap();
         static ref NUMBER: Regex = Regex::new(r"\d+(\.\d+)?").unwrap();
@@ -29,7 +31,10 @@ pub fn parse(buff: &str) -> Vec<Token> {
     for c in buff.chars() {
         // White space and parentheses trigger the completion of the previous token
         if WHITESPACE.is_match(c.to_string().as_str()) || c == '(' || c == ')' {
-            if DEFINE.is_match(token.as_str()) {
+            if LAMBDA.is_match(token.as_str()) {
+                tokens.push(Token::Lambda);
+            }
+            else if DEFINE.is_match(token.as_str()) {
                 tokens.push(Token::Define);
             }
             else if NUMBER.is_match(token.as_str()) {
@@ -103,6 +108,16 @@ mod test {
         let tokens = parse("(define A 10.0)");
         let expected_tokens = vec![Token::OpenParen, Token::Define,
             Token::Identifier(String::from("A")), Token::Number(10.0), Token::CloseParen];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn lambda_test() {
+        let tokens = parse("(lambda (x) (* x x))");
+        let expected_tokens = vec![Token::OpenParen, Token::Lambda,
+            Token::OpenParen, Token::Identifier(String::from("x")), Token::CloseParen,
+            Token::OpenParen, Token::Identifier(String::from("*")), Token::Identifier(String::from("x")),
+            Token::Identifier(String::from("x")), Token::CloseParen, Token::CloseParen];
         assert_eq!(tokens, expected_tokens);
     }
 

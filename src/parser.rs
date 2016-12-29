@@ -18,7 +18,30 @@ pub enum AstNode {
     String(String),
     Identifier(String),
     Define(String, Box<AstNode>),
-    Lambda(Vec<Box<AstNode>>, Box<AstNode>), // contains (list of args, AST of function body)
+    Lambda(Vec<String>, Box<AstNode>), // contains (list of args, AST of function body)
+}
+
+pub fn parse_lambda<I>(tokens: &mut Peekable<I>) -> AstNode
+    where I: Iterator<Item=Token>
+{
+    let mut args: Vec<String> = Vec::new();
+    let expr: Box<AstNode>;
+
+    if let Some(Token::OpenParen) = (*tokens).next() {
+        while let Some(token) = (*tokens).next() {
+            match token  {
+                Token::CloseParen => break,
+                Token::Identifier(ident) => args.push(ident.clone()),
+                other => panic!("Lambda arguments must be identifiers: {:?}", other)
+            }
+        }
+    }
+    else {
+        panic!("Invalid syntax for lambda");
+    }
+    expr = Box::new(parse(tokens));
+
+    return AstNode::Lambda(args, expr);
 }
 
 pub fn parse_define<I>(tokens: &mut Peekable<I>) -> AstNode
@@ -69,12 +92,17 @@ pub fn parse<I>(tokens: &mut Peekable<I>) -> AstNode
                     (*tokens).next();
                     return parse_define(tokens);
                 },
+                Token::Lambda => {
+                    (*tokens).next();
+                    return parse_lambda(tokens);
+                },
                 _ => parse_exp(tokens)
             },
             Token::Number(x) => AstNode::Number(x),
             Token::String(x) => AstNode::String(x),
             Token::Identifier(x) => AstNode::Identifier(x),
             Token::Define => panic!("Unexpected define!"),
+            Token::Lambda => panic!("Unexpected lambda!"),
             Token::CloseParen => panic!("Unexpected )!"),
         }
     }
@@ -165,6 +193,45 @@ mod test {
     fn mismatched_paren_end() {
         let tokens = vec![Token::Define,
                           Token::Identifier(String::from("LENGTH")), Token::Number(10.0), Token::CloseParen, Token::CloseParen];
+        parse(&mut tokens.into_iter().peekable());
+    }
+
+    #[test]
+    fn lambda_parse() {
+        // (lambda (x) (* x x))
+        let tokens = vec![Token::OpenParen, Token::Lambda,
+            Token::OpenParen, Token::Identifier(String::from("x")), Token::CloseParen,
+            Token::OpenParen, Token::Identifier(String::from("*")), Token::Identifier(String::from("x")),
+            Token::Identifier(String::from("x")), Token::CloseParen, Token::CloseParen];
+
+        let expected_ast = AstNode::Lambda(vec![String::from("x")],
+                                           Box::new(AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("*"))),
+                                                 Box::new(AstNode::Identifier(String::from("x"))),
+                                                 Box::new(AstNode::Identifier(String::from("x")))])));
+        let ast = parse(&mut tokens.into_iter().peekable());
+        assert_eq!(ast, expected_ast);
+    }
+
+    #[test]
+    fn lambda_parse_const_expr() {
+        // (lambda (x) 1)
+        let tokens = vec![Token::OpenParen, Token::Lambda, Token::OpenParen, Token::Identifier(String::from("x")), Token::CloseParen,
+            Token::Number(1.0), Token::CloseParen];
+
+        let expected_ast = AstNode::Lambda(vec![String::from("x")],
+                                           Box::new(AstNode::Number(1.0)));
+        let ast = parse(&mut tokens.into_iter().peekable());
+        assert_eq!(ast, expected_ast);
+    }
+
+    #[test]
+    #[should_panic]
+    fn lambda_parse_malformed_args() {
+        let tokens = vec![Token::OpenParen, Token::Lambda,
+            Token::OpenParen, Token::Number(10.0), Token::CloseParen,
+            Token::OpenParen, Token::Identifier(String::from("*")), Token::Identifier(String::from("x")),
+            Token::Identifier(String::from("x")), Token::CloseParen, Token::CloseParen];
+
         parse(&mut tokens.into_iter().peekable());
     }
 
