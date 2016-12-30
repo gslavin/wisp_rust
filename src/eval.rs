@@ -7,6 +7,7 @@ use parser::AstNode;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
+#[derive(Debug, Clone)]
 pub struct Context {
     defines: BTreeMap<String, Box<AstNode>>,
 }
@@ -51,25 +52,37 @@ fn reduce<F>(args: &[Box<AstNode>], f: F) -> AstNode
 
 /* Apply the given evaluated arguments to the given operand */
 fn apply(op: &AstNode, args: &[Box<AstNode>], context: &Context) -> AstNode {
-    if let AstNode::Identifier(ref ident) = *op {
-        match ident.as_str() {
-            "+" => reduce(args, |x, sum| sum + x),
-            "*" => reduce(args, |x, prod| prod * x),
-            "-" => reduce(args, |x, sum| sum - x),
-            "/" => reduce(args, |x, prod| prod / x),
-            _ => {
-                /* TODO: implement functions
-                match context.get_define(&String::from(name)) {
-                    Some(value) => *(value.clone()),
-                    None => panic!("Undefined Identifier: {:?}", name)
+    match *op {
+        AstNode::Identifier(ref ident) => {
+            match ident.as_str() {
+                "+" => reduce(args, |x, sum| sum + x),
+                "*" => reduce(args, |x, prod| prod * x),
+                "-" => reduce(args, |x, sum| sum - x),
+                "/" => reduce(args, |x, prod| prod / x),
+                _ => {
+                    /* TODO: implement functions
+                       match context.get_define(&String::from(name)) {
+                       Some(value) => *(value.clone()),
+                       None => panic!("Undefined Identifier: {:?}", name)
+                       }
+                       */
+                    panic!("TODO: implement functions")
                 }
-                */
-                panic!("TODO: implement functions")
             }
-        }
-    }
-    else {
-        panic!("Invalid operator: {:?}", op);
+        },
+        // TODO: avoid copying when creating sub context
+        AstNode::Lambda(ref parameters, ref expr) => {
+            // Add arg values to context
+            let mut lambda_context = (*context).clone();
+            for (param, arg) in parameters.iter().zip(args.iter()) {
+                lambda_context.add_define(param.clone(), arg.clone());
+            }
+            // Eval expression
+            let mut lambda_body = (**expr).clone();
+            eval(&mut lambda_body, &mut lambda_context);
+            return lambda_body;
+        },
+        ref op => panic!("Invalid operator: {:?}", op)
     }
 }
 
@@ -171,6 +184,22 @@ mod test {
                                                     Box::new(AstNode::Number(4.0))]);
         eval(&mut ast, &mut c);
         let expected_result = AstNode::Number(7.0);
+        assert_eq!(ast, expected_result);
+    }
+
+    #[test]
+    fn simple_lambda() {
+        // ((lambda (x) (* x x)) 4)
+        let mut c = Context::new();
+        let mut ast = AstNode::Expression(vec![
+                            Box::new(AstNode::Lambda(vec![String::from("x")],
+                                            Box::new(AstNode::Expression(vec![
+                                                 Box::new(AstNode::Identifier(String::from("*"))),
+                                                 Box::new(AstNode::Identifier(String::from("x"))),
+                                                 Box::new(AstNode::Identifier(String::from("x")))])))),
+                            Box::new(AstNode::Number(4.0))]);
+        eval(&mut ast, &mut c);
+        let expected_result = AstNode::Number(16.0);
         assert_eq!(ast, expected_result);
     }
 
