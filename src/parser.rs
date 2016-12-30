@@ -41,7 +41,11 @@ pub fn parse_lambda<I>(tokens: &mut Peekable<I>) -> AstNode
     }
     expr = Box::new(parse(tokens));
 
-    return AstNode::Lambda(args, expr);
+    // Consume CloseParen
+    match (*tokens).next().unwrap() {
+        Token::CloseParen => AstNode::Lambda(args, expr),
+        _ => panic!("too many arguments for lambda! Expected CloseParen")
+    }
 }
 
 pub fn parse_define<I>(tokens: &mut Peekable<I>) -> AstNode
@@ -208,6 +212,24 @@ mod test {
                                            Box::new(AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("*"))),
                                                  Box::new(AstNode::Identifier(String::from("x"))),
                                                  Box::new(AstNode::Identifier(String::from("x")))])));
+        let ast = parse(&mut tokens.into_iter().peekable());
+        assert_eq!(ast, expected_ast);
+    }
+
+    #[test]
+    fn lambda_exp_parse() {
+        // ((lambda (x) (* x x)) 4)
+        let tokens = vec![Token::OpenParen, Token::OpenParen, Token::Lambda,
+            Token::OpenParen, Token::Identifier(String::from("x")), Token::CloseParen,
+            Token::OpenParen, Token::Identifier(String::from("*")), Token::Identifier(String::from("x")),
+            Token::Identifier(String::from("x")), Token::CloseParen, Token::CloseParen, Token::Number(4.0), Token::CloseParen];
+
+        let expected_ast = AstNode::Expression(vec![
+                            Box::new(AstNode::Lambda(vec![String::from("x")],
+                                        Box::new(AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("*"))),
+                                            Box::new(AstNode::Identifier(String::from("x"))),
+                                            Box::new(AstNode::Identifier(String::from("x")))])))),
+                            Box::new(AstNode::Number(4.0))]);
         let ast = parse(&mut tokens.into_iter().peekable());
         assert_eq!(ast, expected_ast);
     }
