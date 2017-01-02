@@ -1,1 +1,2 @@
-(+ (* 2 (- 10 (/ 18 2))) 2)
+(define my_func (lambda (x y z) (* x y z)))
+(my_func 2 2 2)
