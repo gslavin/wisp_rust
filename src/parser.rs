@@ -66,6 +66,8 @@ pub fn parse_define<I>(tokens: &mut Peekable<I>) -> AstNode
         panic!("Unexpected end of token stream");
     }
     value = Box::new(parse(tokens));
+    // Consume CloseParen
+    (*tokens).next();
 
     return AstNode::Define(identifier, value);
 }
