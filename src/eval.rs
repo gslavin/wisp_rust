@@ -9,19 +9,35 @@ use std::collections::BTreeSet;
 
 #[derive(Debug, Clone)]
 pub struct Context {
-    defines: BTreeMap<String, Box<AstNode>>,
+    defines: Vec<BTreeMap<String, Box<AstNode>>>,
 }
 
 impl Context {
     /* Add a definition to the given state */
     pub fn new() -> Context {
-        return Context{defines: BTreeMap::new()};
+        return Context{defines: vec![BTreeMap::new()]};
+    }
+    pub fn add_namespace(&mut self) -> () {
+        (*self).defines.push(BTreeMap::new())
+    }
+    pub fn remove_namespace(&mut self) -> () {
+        if (*self).defines.len() == 0 {
+            panic!("Can't remove only namespace!");
+        }
+        (*self).defines.pop();
     }
     pub fn add_define(&mut self, name: String, value: Box<AstNode>) -> Option<Box<AstNode>> {
-        return (*self).defines.insert(name, value);
+        let end = (*self).defines.len() - 1;
+        return (*self).defines[end].insert(name, value);
     }
     fn get_define(&self, name: &String) -> Option<&Box<AstNode>> {
-        return (*self).defines.get(name);
+        for defines in (*self).defines.iter().rev() {
+            if let Some(value) = defines.get(name) {
+                return Some(value);
+            }
+        }
+
+        return None;
     }
 }
 
@@ -51,7 +67,7 @@ fn reduce<F>(args: &[Box<AstNode>], f: F) -> AstNode
 }
 
 /* Apply the given evaluated arguments to the given operand */
-fn apply(op: &AstNode, args: &[Box<AstNode>], context: &Context) -> AstNode {
+fn apply(op: &AstNode, args: &[Box<AstNode>], context: &mut Context) -> AstNode {
     match *op {
         AstNode::Identifier(ref ident) => {
             match ident.as_str() {
@@ -73,13 +89,14 @@ fn apply(op: &AstNode, args: &[Box<AstNode>], context: &Context) -> AstNode {
         // TODO: avoid copying when creating sub context
         AstNode::Lambda(ref parameters, ref expr) => {
             // Add arg values to context
-            let mut lambda_context = (*context).clone();
+            (*context).add_namespace();
             for (param, arg) in parameters.iter().zip(args.iter()) {
-                lambda_context.add_define(param.clone(), arg.clone());
+                context.add_define(param.clone(), arg.clone());
             }
             // Eval expression
             let mut lambda_body = (**expr).clone();
-            eval(&mut lambda_body, &mut lambda_context);
+            eval(&mut lambda_body, context);
+            (*context).remove_namespace();
             return lambda_body;
         },
         ref op => panic!("Invalid operator: {:?}", op)
@@ -143,6 +160,20 @@ mod test {
         let value = Box::new(AstNode::Number(10.0));
         c.add_define(name.clone(), value.clone());
         assert_eq!(value, *c.get_define(&name).unwrap());
+    }
+
+    #[test]
+    fn multiple_namespace_context() {
+        let mut c = Context::new();
+        let name = String::from("A");
+        let old_value = Box::new(AstNode::Number(5.0));
+        let value = Box::new(AstNode::Number(10.0));
+        c.add_define(name.clone(), old_value.clone());
+        c.add_namespace();
+        c.add_define(name.clone(), value.clone());
+        assert_eq!(value, *c.get_define(&name).unwrap());
+        c.remove_namespace();
+        assert_eq!(old_value, *c.get_define(&name).unwrap());
     }
 
     #[test]
