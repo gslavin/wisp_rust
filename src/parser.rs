@@ -187,6 +187,22 @@ mod test {
     }
 
     #[test]
+    fn define_lambda_parse() {
+        //(define my_func (lambda (x y z) (* x y z)))
+        let tokens = vec![Token::OpenParen, Token::Define, Token::Identifier(String::from("my_func")), 
+            Token::OpenParen, Token::Lambda, Token::OpenParen, Token::Identifier(String::from("x")), Token::CloseParen,
+            Token::OpenParen, Token::Identifier(String::from("*")), Token::Identifier(String::from("x")),
+            Token::Identifier(String::from("x")), Token::CloseParen, Token::CloseParen];
+
+        let expected_ast = AstNode::Define(String::from("my_func"), Box::new(AstNode::Lambda(vec![String::from("x")],
+                                           Box::new(AstNode::Expression(vec![Box::new(AstNode::Identifier(String::from("*"))),
+                                                 Box::new(AstNode::Identifier(String::from("x"))),
+                                                 Box::new(AstNode::Identifier(String::from("x")))])))));
+        let ast = parse(&mut tokens.into_iter().peekable());
+        assert_eq!(ast, expected_ast);
+    }
+
+    #[test]
     #[should_panic]
     fn mismatched_paren_beginning() {
         let tokens = vec![Token::CloseParen, Token::Define,
