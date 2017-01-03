@@ -10,6 +10,8 @@ pub enum Token {
     OpenParen,
     Define,
     Lambda,
+    If,
+    Bool(bool),
     Number(f64),
     String(String),
     Identifier(String),
@@ -21,8 +23,10 @@ pub fn parse(buff: &str) -> Vec<Token> {
     let mut token = String::new();
 
     lazy_static! {
-        static ref LAMBDA: Regex = Regex::new(r"lambda").unwrap();
         static ref DEFINE: Regex = Regex::new(r"define").unwrap();
+        static ref LAMBDA: Regex = Regex::new(r"lambda").unwrap();
+        static ref IF: Regex = Regex::new(r"if").unwrap();
+        static ref BOOL: Regex = Regex::new(r"(true)|(false)").unwrap();
         static ref IDENT: Regex = Regex::new(r"([A-Za-z_]|[/*\+-])([0-9A-Za-z_]|[/*\+-])*").unwrap();
         static ref NUMBER: Regex = Regex::new(r"\d+(\.\d+)?").unwrap();
         static ref STRING: Regex = Regex::new(r#"".*""#).unwrap();
@@ -31,11 +35,18 @@ pub fn parse(buff: &str) -> Vec<Token> {
     for c in buff.chars() {
         // White space and parentheses trigger the completion of the previous token
         if WHITESPACE.is_match(c.to_string().as_str()) || c == '(' || c == ')' {
-            if LAMBDA.is_match(token.as_str()) {
+            if DEFINE.is_match(token.as_str()) {
+                tokens.push(Token::Define);
+            }
+            else if LAMBDA.is_match(token.as_str()) {
                 tokens.push(Token::Lambda);
             }
-            else if DEFINE.is_match(token.as_str()) {
-                tokens.push(Token::Define);
+            else if IF.is_match(token.as_str()) {
+                tokens.push(Token::If);
+            }
+            else if BOOL.is_match(token.as_str()) {
+                let boolean = token.parse::<bool>().expect("Invalid boolean!");
+                tokens.push(Token::Bool(boolean));
             }
             else if NUMBER.is_match(token.as_str()) {
                 let num = token.parse::<f64>().expect("Invalid number!");
@@ -118,6 +129,14 @@ mod test {
             Token::OpenParen, Token::Identifier(String::from("x")), Token::CloseParen,
             Token::OpenParen, Token::Identifier(String::from("*")), Token::Identifier(String::from("x")),
             Token::Identifier(String::from("x")), Token::CloseParen, Token::CloseParen];
+        assert_eq!(tokens, expected_tokens);
+    }
+
+    #[test]
+    fn if_test() {
+        let tokens = parse("(if true false true)");
+        let expected_tokens = vec![Token::OpenParen, Token::If,
+            Token::Bool(true), Token::Bool(false), Token::Bool(true), Token::CloseParen];
         assert_eq!(tokens, expected_tokens);
     }
 

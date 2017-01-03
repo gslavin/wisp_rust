@@ -13,12 +13,14 @@ use std::iter::Peekable;
 /* TODO: Add lambdas */
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum AstNode {
-    Expression(Vec<Box<AstNode>>),
+    Expression(Vec<Box<AstNode>>), // Expression(list of arguments)
+    Define(String, Box<AstNode>), // Define(name, value)
+    Lambda(Vec<String>, Box<AstNode>), // lambda(list of parameter identifiers, expr)
+    If(Box<AstNode>, Box<AstNode>, Box<AstNode>), // If (pred, true expr, false expr)
+    Bool(bool),
     Number(f64),
     String(String),
-    Identifier(String),
-    Define(String, Box<AstNode>),
-    Lambda(Vec<String>, Box<AstNode>), // contains (list of args, AST of function body)
+    Identifier(String)
 }
 
 pub fn parse_lambda<I>(tokens: &mut Peekable<I>) -> AstNode
@@ -46,6 +48,25 @@ pub fn parse_lambda<I>(tokens: &mut Peekable<I>) -> AstNode
         Token::CloseParen => AstNode::Lambda(args, expr),
         _ => panic!("too many arguments for lambda! Expected CloseParen")
     }
+}
+
+pub fn parse_if<I>(tokens: &mut Peekable<I>) -> AstNode
+    where I: Iterator<Item=Token>
+{
+    let pred: Box<AstNode>;
+    let if_path: Box<AstNode>;
+    let else_path: Box<AstNode>;
+
+    pred = Box::new(parse(tokens));
+    if_path = Box::new(parse(tokens));
+    else_path = Box::new(parse(tokens));
+    // Consume CloseParen
+    match (*tokens).next().unwrap() {
+        Token::CloseParen => {},
+        token => panic!("Expected close paren in if statement but found: {:?}", token)
+    }
+
+    return AstNode::If(pred, if_path, else_path);
 }
 
 pub fn parse_define<I>(tokens: &mut Peekable<I>) -> AstNode
@@ -102,13 +123,19 @@ pub fn parse<I>(tokens: &mut Peekable<I>) -> AstNode
                     (*tokens).next();
                     return parse_lambda(tokens);
                 },
+                Token::If => {
+                    (*tokens).next();
+                    return parse_if(tokens);
+                },
                 _ => parse_exp(tokens)
             },
+            Token::Bool(x) => AstNode::Bool(x),
             Token::Number(x) => AstNode::Number(x),
             Token::String(x) => AstNode::String(x),
             Token::Identifier(x) => AstNode::Identifier(x),
             Token::Define => panic!("Unexpected define!"),
             Token::Lambda => panic!("Unexpected lambda!"),
+            Token::If => panic!("Unexpected if!"),
             Token::CloseParen => panic!("Unexpected )!"),
         }
     }
@@ -271,6 +298,49 @@ mod test {
             Token::OpenParen, Token::Number(10.0), Token::CloseParen,
             Token::OpenParen, Token::Identifier(String::from("*")), Token::Identifier(String::from("x")),
             Token::Identifier(String::from("x")), Token::CloseParen, Token::CloseParen];
+
+        parse(&mut tokens.into_iter().peekable());
+    }
+
+    #[test]
+    #[should_panic]
+    fn lambda_unexpected() {
+        let tokens = vec![Token::Lambda,
+            Token::OpenParen, Token::Number(10.0), Token::CloseParen,
+            Token::OpenParen, Token::Identifier(String::from("*")), Token::Identifier(String::from("x")),
+            Token::Identifier(String::from("x")), Token::CloseParen, Token::CloseParen];
+
+        parse(&mut tokens.into_iter().peekable());
+    }
+
+    #[test]
+    fn if_test() {
+        // (if true false true)
+        let tokens = vec![Token::OpenParen, Token::If,
+            Token::Bool(true), Token::Bool(false), Token::Bool(true), Token::CloseParen];
+        let expected_ast =  AstNode::If(Box::new(AstNode::Bool(true)), Box::new(AstNode::Bool(false)),
+            Box::new(AstNode::Bool(true)));
+
+        let ast = parse(&mut tokens.into_iter().peekable());
+        assert_eq!(ast, expected_ast);
+    }
+
+    #[test]
+    #[should_panic]
+    fn if_test_too_many_args() {
+        // (if true false true true)
+        let tokens = vec![Token::OpenParen, Token::If,
+            Token::Bool(true), Token::Bool(false), Token::Bool(true), Token::Bool(true), Token::CloseParen];
+
+        parse(&mut tokens.into_iter().peekable());
+    }
+
+    #[test]
+    #[should_panic]
+    fn if_expected_test() {
+        // if true false true true)
+        let tokens = vec![Token::If,
+            Token::Bool(true), Token::Bool(false), Token::Bool(true), Token::Bool(true), Token::CloseParen];
 
         parse(&mut tokens.into_iter().peekable());
     }
