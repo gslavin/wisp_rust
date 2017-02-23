@@ -20,3 +20,5 @@
 
 - Implement conditional statements
     -  Need cond or if statement
+
+- eval currentl evalutes in place.  Change to return AstNode?

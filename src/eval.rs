@@ -138,6 +138,22 @@ pub fn eval(ast: &mut AstNode, context: &mut Context) -> () {
                 }
             }
         },
+        AstNode::If(ref mut pred, ref mut true_expr, ref mut false_expr) => {
+            eval(pred, context);
+            match **pred {
+                AstNode::Bool(b) => {
+                    if b {
+                        eval(true_expr, context);
+                        result = Some((**true_expr).clone());
+                    }
+                    else {
+                        eval(false_expr, context);
+                        result = Some((**false_expr).clone());
+                    }
+                },
+                ref pred => panic!("Unexpected predicate for if statement: {:?}", pred)
+            }
+        },
         _ => {}
     }
     if let Some(x) = result {
@@ -292,4 +308,25 @@ mod test {
         assert_eq!(ast, expected_result);
     }
 
+    #[test]
+    fn simple_if_true() {
+        let mut c = Context::new();
+        let mut ast = AstNode::If(Box::new(AstNode::Bool(true)),
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0)));
+        eval(&mut ast, &mut c);
+        let expected_result = AstNode::Number((3.0));
+        assert_eq!(ast, expected_result);
+    }
+
+    #[test]
+    fn simple_if_false() {
+        let mut c = Context::new();
+        let mut ast = AstNode::If(Box::new(AstNode::Bool(false)),
+                                                    Box::new(AstNode::Number(3.0)),
+                                                    Box::new(AstNode::Number(4.0)));
+        eval(&mut ast, &mut c);
+        let expected_result = AstNode::Number((4.0));
+        assert_eq!(ast, expected_result);
+    }
 }
